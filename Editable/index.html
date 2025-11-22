@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sercoma — Dibuja tu idea</title>
+<style>
+  :root{
+    --azul:#001A2D;
+    --dorado:#AB7E24;
+    --blanco:#FFFFFF;
+    --muted:#F3F4F6;
+    --glass: rgba(255,255,255,0.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter, 'Segoe UI', Arial, sans-serif;background:linear-gradient(180deg,var(--azul), #011627);color:var(--blanco);-webkit-font-smoothing:antialiased}
+
+  header{display:flex;align-items:center;gap:16px;padding:22px 24px;max-width:1200px;margin:18px auto;border-radius:14px}
+  header .brand{display:flex;align-items:center;gap:14px}
+  header img{height:72px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.4)}
+  header h1{margin:0;font-size:22px;color:var(--dorado)}
+  header p{margin:0;color:rgba(255,255,255,0.9);opacity:0.95}
+
+  .app{max-width:1200px;margin:12px auto;padding:0 18px}
+
+  .stage{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+  .canvas-card{background:var(--muted);padding:14px;border-radius:14px;border:4px solid var(--dorado);box-shadow:0 12px 30px rgba(0,0,0,0.45)}
+
+  canvas{display:block;width:100%;height:560px;border-radius:10px;background:var(--blanco);touch-action:none}
+
+  /* sidebar */
+  .sidebar{background:transparent;padding:12px}
+  .panel{background:rgba(255,255,255,0.06);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.06)}
+  .controls{display:flex;flex-direction:column;gap:12px}
+
+  .row{display:flex;gap:8px;align-items:center}
+  label{font-size:14px}
+  input[type=range]{width:100%}
+
+  .color-swatch{width:40px;height:36px;border-radius:8px;border:2px solid rgba(255,255,255,0.12);cursor:pointer}
+  .btn{padding:10px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+  .btn-ghost{background:transparent;border:2px solid rgba(255,255,255,0.08);color:var(--blanco)}
+  .btn-primary{background:var(--dorado);color:var(--azul)}
+  .btn-messenger{background:#0084FF;color:#fff}
+
+  .info{margin-top:18px;background:var(--blanco);color:var(--azul);padding:14px;border-radius:10px;font-weight:600;text-align:center}
+
+  /* mobile */
+  @media(max-width:960px){
+    .stage{grid-template-columns:1fr}
+    canvas{height:360px}
+    .sidebar{order:2}
+  }
+
+  /* small floating toolbar */
+  .toolbar{position:fixed;left:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:999}
+  .toolbar .tool{width:56px;height:56px;border-radius:12px;border:none;background:var(--muted);color:var(--azul);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,0,0,0.4);cursor:pointer}
+  .toolbar .tool.primary{background:var(--dorado);color:var(--azul)}
+
+  footer{max-width:1200px;margin:24px auto;color:rgba(255,255,255,0.6);text-align:center}
+</style>
+</head>
+<body>
+  <header class="app">
+    <div class="brand">
+      <img src="../Medios/Logo/logo.png" alt="Sercoma" />
+      <div>
+        <h1>Sercoma — Dibuja tu idea</h1>
+        <p>Sube tu boceto, nosotros lo modelamos en 3D. ¡Recibe un descuento por compartir tu sueño!</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="app">
+    <section class="stage">
+      <div class="canvas-card">
+        <canvas id="drawCanvas" width="1200" height="750"></canvas>
+        <div style="display:flex;gap:8px;margin-top:12px;align-items:center;justify-content:space-between">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="undoBtn" class="btn btn-ghost">Deshacer</button>
+            <button id="clearBtn" class="btn btn-ghost">Limpiar</button>
+            <button id="eraserBtn" class="btn btn-ghost">Borrador</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="downloadBtn" class="btn btn-primary">Descargar</button>
+            <button id="messengerBtn" class="btn btn-messenger">Enviar</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="panel">
+          <div class="controls">
+            <div>
+              <label>Color</label>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <div class="color-swatch" data-color="#001A2D" style="background:#001A2D"></div>
+                <div class="color-swatch" data-color="#AB7E24" style="background:#AB7E24"></div>
+                <div class="color-swatch" data-color="#FFFFFF" style="background:#FFFFFF;border:1px solid #ddd"></div>
+                <input id="colorPicker" type="color" value="#001A2D" style="margin-left:6px;padding:6px;border-radius:8px;border:none;" />
+              </div>
+            </div>
+
+            <div>
+              <label>Tamaño del trazo</label>
+              <input id="sizePicker" type="range" min="1" max="60" value="4" />
+            </div>
+
+            <div class="row">
+              <label style="flex:1">Cuadrícula</label>
+              <button id="gridBtn" class="btn btn-ghost">Mostrar</button>
+            </div>
+
+            <div class="row">
+              <label style="flex:1">Calidad descarga</label>
+              <select id="quality" style="padding:8px;border-radius:8px;border:none">
+                <option value="0.9">Alta</option>
+                <option value="0.75" selected>Equilibrada</option>
+                <option value="0.6">Ligera</option>
+              </select>
+            </div>
+
+            <div style="margin-top:6px;font-size:13px;color:rgba(0,0,0,0.7);">
+              Consejo: descarga en calidad "Equilibrada" para enviar por Messenger sin problemas.
+            </div>
+          </div>
+        </div>
+
+        <div class="info" style="margin-top:14px">Descarga tu dibujo y envíanoslo al Messenger dando clic en "Enviar". ¡Estamos esperando tu idea!</div>
+      </aside>
+    </section>
+
+    <div class="toolbar" aria-hidden="false">
+      <button id="toolPen" class="tool primary" title="Lápiz">✏️</button>
+      <button id="toolEraser" class="tool" title="Borrador">🩹</button>
+      <button id="toolClear" class="tool" title="Limpiar">🧽</button>
+    </div>
+
+    <footer>© Sercoma — Diseña y comparte tu idea</footer>
+  </main>
+
+<script>
+(function(){
+  // Elementos
+  const canvas = document.getElementById('drawCanvas');
+  const ctx = canvas.getContext('2d');
+  const colorPicker = document.getElementById('colorPicker');
+  const sizePicker = document.getElementById('sizePicker');
+  const undoBtn = document.getElementById('undoBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const messengerBtn = document.getElementById('messengerBtn');
+  const gridBtn = document.getElementById('gridBtn');
+  const qualitySelect = document.getElementById('quality');
+  const swatches = document.querySelectorAll('.color-swatch');
+  const toolPen = document.getElementById('toolPen');
+  const toolEraserBtn = document.getElementById('toolEraser');
+  const toolEraserSmall = document.getElementById('eraserBtn');
+  const toolClear = document.getElementById('toolClear');
+
+  // Estado
+  let drawing = false;
+  let tool = 'pen'; // pen | eraser
+  let brushColor = '#001A2D';
+  let brushSize = Number(sizePicker.value) || 4;
+  let history = [];
+  const MAX_HISTORY = 30;
+  let gridShown = false;
+
+  // Device pixel ratio handling for crisp lines
+  function fitCanvas(){
+    const ratio = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth || 1200;
+    const h = canvas.clientHeight || 750;
+    canvas.width = Math.floor(w * ratio);
+    canvas.height = Math.floor(h * ratio);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(ratio,0,0,ratio,0,0);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    // initialize white background if empty
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0,0,canvas.width/ratio,canvas.height/ratio);
+    saveHistory();
+  }
+  window.addEventListener('resize', () => { // small debounce
+    clearTimeout(window._fitT);
+    window._fitT = setTimeout(fitCanvas, 150);
+  });
+  // initial
+  fitCanvas();
+
+  // Helpers
+  function saveHistory(){
+    try{
+      if(history.length >= MAX_HISTORY) history.shift();
+      history.push(canvas.toDataURL());
+    }catch(e){ console.warn('No se pudo guardar historial',e);} 
+  }
+  function restoreHistory(){
+    if(history.length <= 1) return;
+    history.pop();
+    const last = history[history.length-1];
+    const img = new Image();
+    img.onload = ()=>{
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0, canvas.width / (window.devicePixelRatio||1), canvas.height / (window.devicePixelRatio||1));
+    };
+    img.src = last;
+  }
+
+  // Pointer drawing
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    return { x: (e.clientX - rect.left), y: (e.clientY - rect.top) };
+  }
+
+  canvas.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    drawing = true;
+    canvas.setPointerCapture(e.pointerId);
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineWidth = brushSize;
+    ctx.strokeStyle = brushColor;
+    saveHistory();
+  });
+
+  canvas.addEventListener('pointermove', (e)=>{
+    if(!drawing) return;
+    const p = getPos(e);
+    if(tool === 'pen'){
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineWidth = brushSize;
+      ctx.strokeStyle = brushColor;
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    } else {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = brushSize;
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  });
+
+  canvas.addEventListener('pointerup', (e)=>{
+    drawing = false;
+    try{ canvas.releasePointerCapture(e.pointerId); }catch(_){}
+    ctx.closePath();
+  });
+
+  // Tools
+  colorPicker.addEventListener('input', (e)=>{ brushColor = e.target.value; tool='pen'; toolPen.classList.add('primary'); toolEraserBtn.classList.remove('primary'); });
+  sizePicker.addEventListener('input', (e)=>{ brushSize = Number(e.target.value); });
+  swatches.forEach(s => s.addEventListener('click', ()=>{ const c = s.dataset.color; colorPicker.value = c; brushColor = c; }));
+
+  undoBtn.addEventListener('click', ()=>{ restoreHistory(); });
+  toolPen.addEventListener('click', ()=>{ tool='pen'; toolPen.classList.add('primary'); toolEraserBtn.classList.remove('primary'); });
+  toolEraserBtn.addEventListener('click', ()=>{ tool='eraser'; toolEraserBtn.classList.add('primary'); toolPen.classList.remove('primary'); });
+  toolEraserSmall.addEventListener('click', ()=>{ tool='eraser'; toolEraserBtn.classList.add('primary'); toolPen.classList.remove('primary'); });
+  clearBtn.addEventListener('click', ()=>{
+    const ok = confirm('¿Borrar todo el dibujo?'); if(!ok) return;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // repaint white
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    saveHistory();
+  });
+  toolClear.addEventListener('click', ()=>{ clearBtn.click(); });
+
+  // Grid
+  gridBtn.addEventListener('click', ()=>{
+    gridShown = !gridShown;
+    if(gridShown){
+      canvas.style.backgroundImage = 'linear-gradient(#e6e6e6 1px, transparent 1px), linear-gradient(90deg, #e6e6e6 1px, transparent 1px)';
+      canvas.style.backgroundSize = '20px 20px';
+      gridBtn.textContent = 'Ocultar';
+    } else {
+      canvas.style.backgroundImage = 'none';
+      gridBtn.textContent = 'Mostrar';
+    }
+  });
+
+  // Download (white background + compression)
+  downloadBtn.addEventListener('click', ()=>{
+    const quality = Number(qualitySelect.value) || 0.75;
+    const temp = document.createElement('canvas');
+    const r = window.devicePixelRatio || 1;
+    temp.width = canvas.width;
+    temp.height = canvas.height;
+    const tctx = temp.getContext('2d');
+    // white background
+    tctx.fillStyle = '#FFFFFF';
+    tctx.fillRect(0,0,temp.width, temp.height);
+    // draw original scaled
+    tctx.drawImage(canvas, 0, 0, temp.width, temp.height);
+    const data = temp.toDataURL('image/jpeg', quality);
+    const a = document.createElement('a');
+    a.href = data; a.download = 'dibujo_sercoma.jpg'; a.click();
+  });
+
+  // Messenger (open chat)
+  messengerBtn.addEventListener('click', ()=>{
+    window.open('https://m.me/100091136081849','_blank');
+    alert('Se abrirá Messenger. Descarga tu imagen y adjúntala allí para enviárnosla.');
+  });
+
+  // small toolbar actions
+  document.getElementById('toolPen').addEventListener('click', ()=>{ tool='pen'; });
+  document.getElementById('toolClear').addEventListener('click', ()=>{ clearBtn.click(); });
+
+  // ensure defaults
+  ctx.lineWidth = brushSize; ctx.strokeStyle = brushColor; ctx.lineCap='round'; ctx.lineJoin='round';
+  toolPen.classList.add('primary');
+
+})();
+</script>
+</body>
+</html>
